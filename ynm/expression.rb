@@ -9,8 +9,8 @@ module YNM
       @literal
     end
 
-    def is_token?(types = [])
-      types.nil? ? false : types.include?(@token.name)
+    def is_token?(*types)
+      types.include?(@token.name)
     end
 
     def evaluate!(context)

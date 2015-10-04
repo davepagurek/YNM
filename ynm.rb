@@ -26,10 +26,11 @@ module YNM
           run_count!(1)
           puts context.pop_stack!.value
         end),
-        Token.new(:string, '(?:"\w+")|(?:\'\w+\')', Proc.new do |expr, context|
+        Token.new(:string, '"(?:[^"\\\\]|\\\\.)*"', Proc.new do |expr, context|
           context.push_stack!(YNMString.new(expr))
         end),
-        Token.new(:variable, '\w+')
+        Token.new(:variable, '\w+'),
+        Token.new(:whitespace, '\s+')
       ]
     end 
 
@@ -44,29 +45,33 @@ module YNM
     end
 
     def run_count!(count)
-      count.times do
+      iterations = 0
+      until iterations == count
         if (e = get_expression!)
           e.evaluate!(@context)
+          iterations += 1 unless e.is_token?(:whitespace, :comment)
+        else
+          break
         end
       end
     end
 
-    def run!(to = nil)
+    def run!(*to)
       while expr = get_expression!
         expr.evaluate!(@context)
-        break if expr.is_token?(to)
+        break if expr.is_token?(*to)
       end
     end
 
     def run_to!(*to)
-      run!(to)
+      run!(*to)
     end
 
     def get_expressions!(*to)
       expressions = []
       while expr = get_expression!
         expressions << expr
-        return expressions if expr.is_token(to)
+        return expressions if expr.is_token?(to)
       end
       expressions
     end
@@ -83,7 +88,7 @@ module YNM
   end
 end
 
-YNM.interpret(%q(
-say("hi")
-say("hey mom how's it going")
-))
+YNM.interpret(%q{
+  say("hi")
+  say("hi there")
+})
