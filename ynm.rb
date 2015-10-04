@@ -5,18 +5,20 @@ module YNM
   require_relative('./ynm/variables.rb')
 
   class Interpreter
-    def initialize(input = [], ctx = Context.new, return_to = nil)
+    def initialize(input = "", after_each = nil)
       @input = input
-      @context = ctx
+      @context = Context.new
+      @after_each = after_each
       @tokens = [
         Token.new(:run, "do"),
         Token.new(:block_start, "work"),
         Token.new(:block_end, "please"),
         Token.new(:block_rescue, "oops"),
         Token.new(:statement_end, '\n', Proc.new do |_, context|
+          #@after_each.call(context.pop_stack!) if @after_each
           context.clear_stack!
         end),
-        Token.new(:group_start, '\(', Proc.new do  |_, context|
+        Token.new(:group_start, '\(', Proc.new do |_, context|
           run_to!(:group_end)
         end),
         Token.new(:group_end, '\)'),
@@ -24,13 +26,10 @@ module YNM
         Token.new(:conditional_else, 'backup'),
         Token.new(:print, 'say', Proc.new do |_, context|
           run_count!(1)
-          puts context.pop_stack!.value
+          puts context.pop_stack!.to_s
         end),
-        Token.new(:true, 'probably', Proc.new do |_, context|
-          context.push_stack!(YNMBoolean.new(true))
-        end),
-        Token.new(:false, 'unlikely', Proc.new do |_, context|
-          context.push_stack!(YNMBoolean.new(false))
+        Token.new(:bool, '(?:yes|no|maybe)', Proc.new do |expr, context|
+          context.push_stack!(YNMBoolean.new(expr))
         end),
         Token.new(:string, '"(?:[^"\\\\]|\\\\.)*"', Proc.new do |expr, context|
           context.push_stack!(YNMString.new(expr))
@@ -43,7 +42,7 @@ module YNM
     def get_expression!
       @tokens.each do |token|
         if t = token.match(@input)
-          @input = @input[t.length, @input.length]
+          @input = @input[t.length..@input.length]
           return Expression.new(t, token) 
         end
       end
@@ -81,6 +80,10 @@ module YNM
       end
       expressions
     end
+
+    def add_input!(str)
+      @input = "#{@input} #{str}"
+    end
   end
 
   def self.interpret(input = "")
@@ -93,8 +96,3 @@ module YNM
     end
   end
 end
-
-YNM.interpret(%q{
-  say("Hello, world!")
-  say("hi there")
-})

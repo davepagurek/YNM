@@ -1,5 +1,7 @@
 module YNM
   class Expression
+    attr_reader :literal 
+
     def initialize(literal, token)
       @literal = literal
       @token = token

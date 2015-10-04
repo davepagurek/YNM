@@ -5,6 +5,30 @@ module YNM
     end
 
     def value
+      self
+    end
+
+    def to_s
+      @expression.literal
+    end
+  end
+
+  class YNMBoolean < Value
+    TRUTHS = ["yes", "yeah", "yep", "true", "correct"]
+    FALSEHOODS = ["no", "nope", "nahh", "no way", "false"]
+
+    def value
+      if @expression.literal == "yes"
+        rand > 0.3
+      elsif @expression.literal == "no"
+        rand > 0.7
+      else
+        rand > 0.5
+      end
+    end
+
+    def to_s
+      value ? TRUTHS.sample : FALSEHOODS.sample
     end
   end
 
@@ -12,6 +36,10 @@ module YNM
     require 'levenshtein'
     DICTIONARY = File.read('dictionary.txt').split(/\s+/).group_by{|w| w[0]}
     LETTERS = "abcdefghijklmnopqrstuvwxyz".split("")
+
+    def to_s
+      value
+    end
 
     def value
       @expression.to_s[1..-2].split("").map do |char|
