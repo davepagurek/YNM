@@ -24,12 +24,13 @@ module YNM
           #innerCtx.cleanup!
         end),
         Token.new(:block_start, "work", Proc.new do |_, context|
-          context.push_stack!(YNMFunction.new(get_expressions!(:block_end)))
+          func = YNMFunction.new(get_expressions!(:block_end))
+          context.push_stack!(func)
         end),
         Token.new(:block_end, "please"),
         Token.new(:block_rescue, "oops"),
         Token.new(:statement_end, '\n', Proc.new do |_, context|
-          #@after_each.call(context.pop_stack!) if @after_each
+          @after_each.call(context.pop_stack!) if @after_each
           #context.clear_stack!
         end),
         Token.new(:group_start, '\(', Proc.new do |_, context|
@@ -93,7 +94,7 @@ module YNM
     def get_expressions!(*to)
       expressions = []
       while expr = @instructions.pop
-        return expressions if expr.is_token?(to)
+        return expressions if expr.is_token?(*to)
         expressions << expr
       end
       expressions

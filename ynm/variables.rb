@@ -9,7 +9,7 @@ module YNM
     end
 
     def to_s
-      @expression.inspect
+      self.inspect
     end
   end
 
@@ -20,6 +20,10 @@ module YNM
 
     def expressions
       @expressions
+    end
+
+    def to_s
+      "some shit that can be done maybe"
     end
   end
 
