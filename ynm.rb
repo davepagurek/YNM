@@ -7,16 +7,30 @@ module YNM
   class Interpreter
     def initialize(input = "", after_each = nil)
       @input = input
+      @instructions = []
       @context = Context.new
       @after_each = after_each
       @tokens = [
-        Token.new(:run, "do"),
-        Token.new(:block_start, "work"),
+        Token.new(:run, "do", Proc.new do |_, context|
+          run_count!(1)
+          func = context.pop_stack!
+          #innerCtx = Context.new(@context)
+          func.expressions.reverse_each do |e|
+            #e.evaluate!(innerCtx)
+            @instructions.push(e)
+          end
+          @instructions.push(Expression.new("please", @tokens[2]))
+          run_to!(:block_end)
+          #innerCtx.cleanup!
+        end),
+        Token.new(:block_start, "work", Proc.new do |_, context|
+          context.push_stack!(YNMFunction.new(get_expressions!(:block_end)))
+        end),
         Token.new(:block_end, "please"),
         Token.new(:block_rescue, "oops"),
         Token.new(:statement_end, '\n', Proc.new do |_, context|
           #@after_each.call(context.pop_stack!) if @after_each
-          context.clear_stack!
+          #context.clear_stack!
         end),
         Token.new(:group_start, '\(', Proc.new do |_, context|
           run_to!(:group_end)
@@ -26,7 +40,11 @@ module YNM
         Token.new(:conditional_else, 'backup'),
         Token.new(:print, 'say', Proc.new do |_, context|
           run_count!(1)
-          puts context.pop_stack!.to_s
+          if e = context.pop_stack!
+            puts e.to_s
+          else
+            puts "didn't do shit"
+          end
         end),
         Token.new(:bool, '(?:yes|no|maybe)', Proc.new do |expr, context|
           context.push_stack!(YNMBoolean.new(expr))
@@ -52,7 +70,7 @@ module YNM
     def run_count!(count)
       iterations = 0
       until iterations == count
-        if (e = get_expression!)
+        if (e = @instructions.pop)
           e.evaluate!(@context)
           iterations += 1 unless e.is_token?(:whitespace, :comment)
         else
@@ -62,7 +80,7 @@ module YNM
     end
 
     def run!(*to)
-      while expr = get_expression!
+      while expr = @instructions.pop
         expr.evaluate!(@context)
         break if expr.is_token?(*to)
       end
@@ -74,15 +92,18 @@ module YNM
 
     def get_expressions!(*to)
       expressions = []
-      while expr = get_expression!
-        expressions << expr
+      while expr = @instructions.pop
         return expressions if expr.is_token?(to)
+        expressions << expr
       end
       expressions
     end
 
     def add_input!(str)
       @input = "#{@input} #{str}"
+      while expr = get_expression!
+        @instructions.unshift(expr)
+      end
     end
   end
 

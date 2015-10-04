@@ -9,7 +9,17 @@ module YNM
     end
 
     def to_s
-      @expression.literal
+      @expression.inspect
+    end
+  end
+
+  class YNMFunction < Value
+    def initialize(expressions)
+      @expressions = expressions
+    end
+
+    def expressions
+      @expressions
     end
   end
 

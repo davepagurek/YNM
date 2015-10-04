@@ -1,10 +1,10 @@
 module YNM
   class Context
-    attr_reader :stack, :variabled
+    attr_reader :stack, :variables
 
     def initialize(base = nil)
-      @variables = base ? base.variables : {}
-      @stack = base ? base.stack : []
+      @variables = base.nil? ? {} : base.variables
+      @stack = base.nil? ? [] : base.stack
       @added = []
     end
 
@@ -26,10 +26,12 @@ module YNM
     end
 
     def clear_stack!
+      puts "clearing"
       @stack.clear
     end
 
     def cleanup!
+      puts @stack.inspect
       @added.each do |var|
         @variables.delete(var)
       end
