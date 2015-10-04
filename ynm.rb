@@ -26,6 +26,12 @@ module YNM
           run_count!(1)
           puts context.pop_stack!.value
         end),
+        Token.new(:true, 'probably', Proc.new do |_, context|
+          context.push_stack!(YNMBoolean.new(true))
+        end),
+        Token.new(:false, 'unlikely', Proc.new do |_, context|
+          context.push_stack!(YNMBoolean.new(false))
+        end),
         Token.new(:string, '"(?:[^"\\\\]|\\\\.)*"', Proc.new do |expr, context|
           context.push_stack!(YNMString.new(expr))
         end),
@@ -89,6 +95,6 @@ module YNM
 end
 
 YNM.interpret(%q{
-  say("hi")
+  say("Hello, world!")
   say("hi there")
 })
