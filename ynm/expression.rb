@@ -11,12 +11,16 @@ module YNM
       @literal
     end
 
+    def inspect
+      "#{@token.name}(#{@literal.gsub(/\s+/, " ")})"
+    end
+
     def is_token?(*types)
       types.include?(@token.name)
     end
 
-    def evaluate!(context)
-      @token.evaluate!(self, context)
+    def evaluate!
+      @token.evaluate!(self)
     end
   end
 end

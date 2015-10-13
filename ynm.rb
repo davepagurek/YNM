@@ -11,52 +11,66 @@ module YNM
       @context = Context.new
       @after_each = after_each
       @tokens = [
-        Token.new(:run, "do", Proc.new do |_, context|
+        Token.new(:run, "do", Proc.new do
           run_count!(1)
-          func = context.pop_stack!
-          #innerCtx = Context.new(@context)
+          func = @context.pop_stack!
+          branch_context!
+          @instructions.push(Expression.new("please", get_token(:block_end)))
           func.expressions.reverse_each do |e|
-            #e.evaluate!(innerCtx)
             @instructions.push(e)
           end
-          @instructions.push(Expression.new("please", @tokens[2]))
           run_to!(:block_end)
-          #innerCtx.cleanup!
+          last = @context.pop_stack!
+          pop_context!
+          @context.push_stack!(last)
         end),
-        Token.new(:block_start, "work", Proc.new do |_, context|
+        Token.new(:block_start, "work", Proc.new do
           func = YNMFunction.new(get_expressions!(:block_end))
-          context.push_stack!(func)
+          @context.push_stack!(func)
         end),
         Token.new(:block_end, "please"),
         Token.new(:block_rescue, "oops"),
-        Token.new(:statement_end, '\n', Proc.new do |_, context|
-          @after_each.call(context.pop_stack!) if @after_each
-          #context.clear_stack!
+        Token.new(:statement_end, '\n', Proc.new do 
         end),
-        Token.new(:group_start, '\(', Proc.new do |_, context|
+        Token.new(:group_start, '\(', Proc.new do
           run_to!(:group_end)
         end),
         Token.new(:group_end, '\)'),
         Token.new(:conditional_start, 'assuming'),
         Token.new(:conditional_else, 'backup'),
-        Token.new(:print, 'say', Proc.new do |_, context|
+        Token.new(:print, 'say', Proc.new do
           run_count!(1)
-          if e = context.pop_stack!
+          if e = @context.pop_stack!
             puts e.to_s
           else
             puts "didn't do shit"
           end
+          @context.push_stack!(nil)
+          #TODO: provide a return value (null?)
         end),
-        Token.new(:bool, '(?:yes|no|maybe)', Proc.new do |expr, context|
-          context.push_stack!(YNMBoolean.new(expr))
+        Token.new(:bool, '(?:yes|no|maybe)', Proc.new do |expr|
+          @context.push_stack!(YNMBoolean.new(expr))
         end),
-        Token.new(:string, '"(?:[^"\\\\]|\\\\.)*"', Proc.new do |expr, context|
-          context.push_stack!(YNMString.new(expr))
+        Token.new(:string, '"(?:[^"\\\\]|\\\\.)*"', Proc.new do |expr|
+          @context.push_stack!(YNMString.new(expr))
         end),
         Token.new(:variable, '\w+'),
         Token.new(:whitespace, '\s+')
       ]
     end 
+
+    def branch_context!
+      @context = @context.branch
+    end
+
+    def pop_context!
+      @context.cleanup!
+      @context = @context.done
+    end
+
+    def get_token(type)
+      @tokens.find{|token| token.name == type}
+    end
 
     def get_expression!
       @tokens.each do |token|
@@ -71,20 +85,19 @@ module YNM
     def run_count!(count)
       iterations = 0
       until iterations == count
-        if (e = @instructions.pop)
-          e.evaluate!(@context)
-          iterations += 1 unless e.is_token?(:whitespace, :comment)
-        else
-          break
-        end
+        e = @instructions.pop
+        break if e.nil?
+        e.evaluate!
+        iterations += 1 unless e.is_token?(:whitespace, :comment)
       end
     end
 
     def run!(*to)
       while expr = @instructions.pop
-        expr.evaluate!(@context)
+        expr.evaluate!
         break if expr.is_token?(*to)
       end
+      @after_each.call(@context.pop_stack!) if @after_each && to.empty?
     end
 
     def run_to!(*to)

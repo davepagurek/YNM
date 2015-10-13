@@ -6,6 +6,19 @@ module YNM
       @variables = base.nil? ? {} : base.variables
       @stack = base.nil? ? [] : base.stack
       @added = []
+      @prev = base
+    end
+
+    def done
+      @prev || Context.new
+    end
+
+    def branch
+      Context.new(self)
+    end
+
+    def show_stack
+      @stack.dup
     end
 
     def push_stack!(value)
@@ -26,12 +39,10 @@ module YNM
     end
 
     def clear_stack!
-      puts "clearing"
       @stack.clear
     end
 
     def cleanup!
-      puts @stack.inspect
       @added.each do |var|
         @variables.delete(var)
       end

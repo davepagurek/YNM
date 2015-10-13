@@ -15,8 +15,8 @@ module YNM
       @name
     end
 
-    def evaluate!(expr, context)
-      @evaluate.call(expr, context) if @evaluate
+    def evaluate!(expr)
+      @evaluate.call(expr) if @evaluate
     end
   end
 end
